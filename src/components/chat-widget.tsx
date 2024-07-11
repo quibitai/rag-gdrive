@@ -2,7 +2,6 @@
 import ChatHeader from "@/components/chat-header";
 import ChatInput from "@/components/chat-input";
 import React from "react";
-import { TbMessageCircleQuestion } from "react-icons/tb";
 import { useChat } from "ai/react";
 import ChatMessages from "@/components/chat-messages";
 import Image from "next/image";
