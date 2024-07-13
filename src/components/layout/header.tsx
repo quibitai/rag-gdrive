@@ -17,7 +17,7 @@ const Header = () => {
     });
   };
   return (
-    <div className="">
+    <div className="fixed inset-0 z-10 w-full">
       <header className="flex justify-between w-full p-4">
         <h1 className="font-semibold">RAG ChatBot With GROQ & Vercel AI SDK</h1>
         <button

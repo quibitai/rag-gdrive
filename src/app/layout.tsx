@@ -23,6 +23,7 @@ export default function RootLayout({
         <Header />
         <ChatWidget />
         <Toaster />
+
         <main>{children}</main>
       </body>
     </html>

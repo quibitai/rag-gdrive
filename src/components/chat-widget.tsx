@@ -18,11 +18,11 @@ const ChatWidget = () => {
   };
 
   return (
-    <div className="fixed bottom-10 right-10">
+    <div className="fixed bottom-10 right-10 z-50">
       <div className="flex flex-col items-end">
         {/* Chat Panel */}
         {isOpen ? (
-          <div className="w-[350px] flex flex-col shadow-md rounded-lg h-[600px] max-h-[70vh]">
+          <div className="w-[350px] flex flex-col bg-background shadow-md rounded-lg h-[600px] max-h-[70vh]">
             {/* Chat Header */}
             <ChatHeader />
             {/* Chat Messages */}

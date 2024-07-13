@@ -4,7 +4,7 @@ RAG ChatBot setup with Next.js and Vercel AI SDK using the GROQ
 
 ---
 
-## ![RAG ChatBot with GROQ](./src/assets/rag-chatbot-with-groq.png)
+## ![RAG ChatBot with GROQ](./src/assets/rag-chatbot.png)
 
 ## Install The node modules
 

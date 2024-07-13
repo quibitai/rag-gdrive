@@ -25,8 +25,8 @@ const ChatMessage = ({ message, isUserMessage }: ChatMessageProps) => {
           )}
         >
           <div
-            className={cn("px-4 py-3 rounded-lg", {
-              "bg-blue-500 text-white": isUserMessage,
+            className={cn("px-4 py-3 rounded-lg font-medium", {
+              "bg-blue-300 text-white": isUserMessage,
               "bg-gray-100 text-gray-900": !isUserMessage,
             })}
           >
