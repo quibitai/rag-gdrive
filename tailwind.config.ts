@@ -9,7 +9,9 @@ const config = {
     "./src/**/*.{ts,tsx}",
   ],
   prefix: "",
+  arkMode: 'class',
   theme: {
+    
     container: {
       center: true,
       padding: "2rem",

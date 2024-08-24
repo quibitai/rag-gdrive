@@ -19,12 +19,16 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={inter.className}>
-        <Header />
-        <ChatWidget />
+      <body
+        className={`${inter.className} bg-white dark:bg-black text-black dark:text-white`}
+      >
         <Toaster />
 
-        <main>{children}</main>
+        <div className="w-full">
+          <Header />
+          {children}
+          <ChatWidget />
+        </div>
       </body>
     </html>
   );
