@@ -13,42 +13,45 @@ const ChatWidget = () => {
 
   const [isOpen, setIsOpen] = React.useState(false);
   const toggle = () => {
-    const updatedState = isOpen ? false : true;
-    setIsOpen(updatedState);
+    setIsOpen(!isOpen);
   };
 
   return (
-    <div className="fixed bottom-10 right-10 z-50">
+    <div className="fixed bottom-10 right-5 z-50">
       <div className="flex flex-col items-end">
-        {/* Chat Panel */}
-        {isOpen ? (
-          <div className="w-[350px] flex flex-col bg-background shadow-md rounded-lg h-[600px] max-h-[70vh]">
-            {/* Chat Header */}
-            <ChatHeader />
-            {/* Chat Messages */}
-            <div className="flex-1 border overflow-auto no-scrollbar">
-              {/* Messages */}
-              <ChatMessages messages={messages} />
+        {isOpen && (
+          <div className="relative">
+            <div className="w-[350px] md:w-[450px] flex flex-col bg-white shadow-lg rounded-t-3xl rounded-b-xl h-[600px] max-h-[70vh] border">
+              <ChatHeader />
+              <div className="flex-1 border-t overflow-auto no-scrollbar">
+                <ChatMessages messages={messages} />
+              </div>
+              <ChatInput
+                handleInputChange={handleInputChange}
+                input={input}
+                handleSubmit={handleSubmit}
+              />
             </div>
-            {/* Chat Footer */}
-            <ChatInput
-              handleInputChange={handleInputChange}
-              input={input}
-              handleSubmit={handleSubmit}
-            />
+            <div className="absolute mt-2 left-0 bg-white rounded-xl shadow-md p-3 w-[205px]">
+              <p className="text-neutral-800">
+                Made With{" "}
+                <a
+                  className="text-[#AD49E1]"
+                  href="https://www.envisiontech.agency/"
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  Envision Tech
+                </a>
+              </p>
+            </div>
           </div>
-        ) : null}
-        {/* Bot Icon */}
+        )}
         <button
           onClick={toggle}
-          className="mt-6 flex justify-center items-center cursor-pointer hover:scale-95 animate-in"
+          className="mt-6 flex justify-center items-center cursor-pointer hover:scale-95 animate-in shadow-purple-300 shadow-md p-3 rounded-full"
         >
-          <Image
-            src={"/chatbot.svg"}
-            alt="chatbot icon"
-            height={60}
-            width={60}
-          />
+          <Image src="/chatbot.svg" alt="chatbot icon" height={50} width={50} />
         </button>
       </div>
     </div>
