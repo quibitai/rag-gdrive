@@ -210,6 +210,9 @@ export const fetchDataFromDriveAndSaveLocally = async () => {
     // Array to hold all download promises
     const downloadPromises = [];
 
+    // Load the file catalog to track files
+    const catalog = loadFileCatalog();
+
     for (const file of supportedFiles) {
       if (!file.id || !file.name) {
         console.error("File missing ID or name:", file);
@@ -219,6 +222,7 @@ export const fetchDataFromDriveAndSaveLocally = async () => {
       const fileId = file.id;
       const fileName = file.name;
       const fileMimeType = file.mimeType || '';
+      const fileSize = parseInt(file.size as string) || 0;
       
       console.log(`Downloading file: ${fileName} (ID: ${fileId}, Type: ${fileMimeType})`);
       
@@ -269,6 +273,20 @@ export const fetchDataFromDriveAndSaveLocally = async () => {
                 // Verify the file was actually written
                 if (fs.existsSync(destPath) && fs.statSync(destPath).size > 0) {
                   console.log(`Google Doc ${fileName} exported successfully (${receivedBytes} bytes)`);
+                  
+                  // Add or update file in catalog with driveId
+                  const exportedFileName = path.basename(destPath);
+                  const exportedMimeType = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+                  const exportedSize = fs.statSync(destPath).size;
+                  
+                  addFileToFileCatalog(
+                    destPath,
+                    exportedMimeType,
+                    exportedSize,
+                    'google-drive',
+                    fileId // Pass the Google Drive ID
+                  );
+                  
                   resolve();
                 } else {
                   console.error(`Google Doc ${fileName} export failed - output file is empty or missing`);
@@ -325,6 +343,16 @@ export const fetchDataFromDriveAndSaveLocally = async () => {
                 // Verify the file was actually written
                 if (fs.existsSync(destPath) && fs.statSync(destPath).size > 0) {
                   console.log(`File ${fileName} downloaded successfully (${receivedBytes} bytes)`);
+                  
+                  // Add or update file in catalog with driveId
+                  addFileToFileCatalog(
+                    destPath,
+                    fileMimeType,
+                    receivedBytes,
+                    'google-drive',
+                    fileId // Pass the Google Drive ID
+                  );
+                  
                   resolve();
                 } else {
                   console.error(`File ${fileName} download failed - output file is empty or missing`);
@@ -373,6 +401,9 @@ export const fetchDataFromDriveAndSaveLocally = async () => {
 export const generateBotVectorData = async () => {
   logger.info("Starting vector database generation");
   
+  // Load the file catalog to check for existing files
+  const catalog = loadFileCatalog();
+  
   // Check for file changes
   const { filesToProcess, filesToSkip, deletedFileIds } = checkForFileChanges(
     dirPath,
@@ -388,7 +419,6 @@ export const generateBotVectorData = async () => {
     
     // Get all chunk IDs from deleted files to remove from vector store
     const chunkIdsToDelete: string[] = [];
-    const catalog = loadFileCatalog();
     
     for (const fileId of deletedFileIds) {
       const fileMetadata = catalog.files[fileId];
@@ -422,7 +452,6 @@ export const generateBotVectorData = async () => {
     
     try {
       // Find the file in the catalog
-      const catalog = loadFileCatalog();
       const fileMetadata = Object.values(catalog.files).find(file => file.name === fileName);
       
       if (!fileMetadata) {
@@ -487,7 +516,6 @@ export const generateBotVectorData = async () => {
       logger.error(`Error processing file ${fileName}:`, error);
       
       // Find the file in the catalog
-      const catalog = loadFileCatalog();
       const fileEntry = Object.values(catalog.files).find(file => file.name === fileName);
       
       if (fileEntry) {
@@ -530,25 +558,42 @@ export const generateEmbeddings = async () => {
     
     // First try to fetch data from Google Drive
     try {
+      logger.info("Attempting to fetch files from Google Drive");
       await fetchDataFromDriveAndSaveLocally();
+      logger.info("Successfully fetched files from Google Drive");
     } catch (driveError) {
-      console.error("Error fetching from Google Drive:", driveError);
+      logger.error("Error fetching from Google Drive:", driveError);
       
       // Check if there are manually placed files
       const hasManualFiles = checkManuallyPlacedFiles();
       
       if (!hasManualFiles) {
-        console.log("No manual files found. Please place supported files in the 'knowledgebase' folder manually.");
+        logger.warn("No manual files found. Please place supported files in the 'knowledgebase' folder manually.");
         throw new Error("No supported files available. Please manually place files in the knowledgebase folder.");
       } else {
-        console.log("Using manually placed files instead of Google Drive.");
+        logger.info("Using manually placed files instead of Google Drive.");
       }
     }
     
+    // Log the current state of the file catalog before processing
+    const catalogBeforeProcessing = loadFileCatalog();
+    logger.info(`File catalog contains ${Object.keys(catalogBeforeProcessing.files).length} files before processing`);
+    logger.debug("File catalog before processing:", catalogBeforeProcessing);
+    
     // Generate the embeddings
     await generateBotVectorData();
+    
+    // Log the final state of the file catalog
+    const catalogAfterProcessing = loadFileCatalog();
+    logger.info(`File catalog contains ${Object.keys(catalogAfterProcessing.files).length} files after processing`);
+    
+    // Log information about each file in the catalog
+    logger.info("Files in catalog after processing:");
+    Object.values(catalogAfterProcessing.files).forEach(file => {
+      logger.info(`- ${file.name} (ID: ${file.id}, Drive ID: ${file.driveId || 'N/A'}, Status: ${file.processingStatus})`);
+    });
   } catch (error) {
-    console.error("Error in embedding generation:", error);
+    logger.error("Error in embedding generation:", error);
     throw error;
   }
 };

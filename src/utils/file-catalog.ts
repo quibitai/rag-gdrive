@@ -94,19 +94,37 @@ export const addFileToFileCatalog = (
   const fileId = uuidv4();
   const fileName = path.basename(filePath);
   
-  // Check if file already exists by name and driveId
-  const existingFile = Object.values(catalog.files).find(file => 
-    file.name === fileName && 
-    (driveId ? file.driveId === driveId : true)
-  );
+  // First check if file exists by driveId (for Google Drive files)
+  // This handles the case where a file was renamed in Google Drive
+  let existingFile: FileMetadata | undefined;
+  
+  if (driveId && sourceLocation === 'google-drive') {
+    existingFile = Object.values(catalog.files).find(file => 
+      file.driveId === driveId && file.sourceLocation === 'google-drive'
+    );
+    
+    if (existingFile && existingFile.name !== fileName) {
+      console.log(`File renamed in Google Drive: ${existingFile.name} -> ${fileName}`);
+    }
+  }
+  
+  // If not found by driveId, check by filename
+  if (!existingFile) {
+    existingFile = Object.values(catalog.files).find(file => 
+      file.name === fileName && 
+      (driveId ? file.driveId === driveId : true)
+    );
+  }
   
   if (existingFile) {
     console.log(`File ${fileName} already exists in catalog, updating metadata`);
     
     // Update existing file metadata
+    existingFile.name = fileName; // Update name in case it was renamed
     existingFile.size = size;
     existingFile.lastModified = new Date().toISOString();
     existingFile.processingStatus = 'pending';
+    existingFile.driveId = driveId; // Ensure driveId is updated
     
     saveFileCatalog(catalog);
     return existingFile;
@@ -244,7 +262,10 @@ export const checkForFileChanges = (
       const mimeType = getMimeTypeFromExtension(extension);
       
       // Find if file exists in catalog by name
-      const existingFile = Object.values(catalog.files).find(file => file.name === fileName);
+      let existingFile = Object.values(catalog.files).find(file => file.name === fileName);
+      
+      // If not found by name, it might be a renamed file
+      // We'll check for this when processing deletedFileIds later
       
       if (existingFile) {
         // Remove from deleted files list
@@ -289,6 +310,50 @@ export const checkForFileChanges = (
     } catch (error) {
       console.error(`Error checking file ${fileName}:`, error);
       filesToProcess.push(fileName); // Process anyway to be safe
+    }
+  }
+  
+  // Check if any "deleted" files are actually just renamed files
+  // This is a best-effort approach for manually uploaded files
+  // For Google Drive files, the driveId handling in addFileToFileCatalog will take care of renames
+  const potentiallyRenamedFiles = deletedFileIds.filter(id => {
+    const file = catalog.files[id];
+    return file && file.sourceLocation === 'manual-upload' && file.contentHash;
+  });
+  
+  if (potentiallyRenamedFiles.length > 0) {
+    console.log(`Checking ${potentiallyRenamedFiles.length} potentially renamed files`);
+    
+    for (const fileId of potentiallyRenamedFiles) {
+      const oldFile = catalog.files[fileId];
+      
+      // Look for a file with the same content hash but different name
+      const newFileName = files.find(fileName => {
+        const filePath = path.join(directoryPath, fileName);
+        const hash = calculateFileHash(filePath);
+        return hash === oldFile.contentHash;
+      });
+      
+      if (newFileName) {
+        console.log(`Detected renamed file: ${oldFile.name} -> ${newFileName}`);
+        
+        // Update the file metadata with the new name
+        updateFileMetadata(fileId, {
+          name: newFileName,
+          processingStatus: 'pending'
+        });
+        
+        // Remove from deleted files list
+        const index = deletedFileIds.indexOf(fileId);
+        if (index !== -1) {
+          deletedFileIds.splice(index, 1);
+        }
+        
+        // Add to files to process
+        if (!filesToProcess.includes(newFileName)) {
+          filesToProcess.push(newFileName);
+        }
+      }
     }
   }
   
