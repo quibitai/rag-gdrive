@@ -1,17 +1,34 @@
 "use client";
 import ChatHeader from "@/components/chat-header";
 import ChatInput from "@/components/chat-input";
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { useChat } from "ai/react";
 import ChatMessages from "@/components/chat-messages";
 import Image from "next/image";
+import { usePathname } from "next/navigation";
 
 const ChatWidget = () => {
   const { messages, input, handleInputChange, handleSubmit } = useChat({
     api: "api/chat",
   });
 
-  const [isOpen, setIsOpen] = React.useState(false);
+  const [isOpen, setIsOpen] = useState(false);
+  const pathname = usePathname();
+  
+  // Hide the widget on the /chat page
+  const [shouldRender, setShouldRender] = useState(true);
+  
+  useEffect(() => {
+    // Only show the widget on the home page, not on the chat page
+    const isOnChatPage = pathname === "/chat";
+    setShouldRender(!isOnChatPage);
+  }, [pathname]);
+  
+  // If we're on the chat page, don't render the widget at all
+  if (!shouldRender) {
+    return null;
+  }
+
   const toggle = () => {
     setIsOpen(!isOpen);
   };
@@ -21,7 +38,7 @@ const ChatWidget = () => {
       <div className="flex flex-col items-end">
         {isOpen && (
           <div className="relative">
-            <div className="w-[350px] md:w-[450px] flex flex-col bg-white shadow-lg rounded-t-3xl rounded-b-xl h-[600px] max-h-[70vh] border">
+            <div className="w-[350px] md:w-[450px] flex flex-col bg-white dark:bg-gray-800 shadow-lg rounded-t-3xl rounded-b-xl h-[600px] max-h-[70vh] border">
               <ChatHeader />
               <div className="flex-1 border-t overflow-auto no-scrollbar">
                 <ChatMessages messages={messages} />
@@ -32,8 +49,8 @@ const ChatWidget = () => {
                 handleSubmit={handleSubmit}
               />
             </div>
-            <div className="absolute mt-2 left-0 bg-white rounded-xl shadow-md p-3 w-[205px]">
-              <p className="text-neutral-800">
+            <div className="absolute mt-2 left-0 bg-white dark:bg-gray-800 rounded-xl shadow-md p-3 w-[205px]">
+              <p className="text-neutral-800 dark:text-white">
                 Made With{" "}
                 <a
                   className="text-[#AD49E1]"

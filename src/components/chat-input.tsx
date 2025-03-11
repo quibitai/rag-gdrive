@@ -6,12 +6,14 @@ type ChatInputProps = {
   input: string;
   className?: string;
   handleSubmit: (e: FormEvent<HTMLFormElement>) => void;
+  isLoading?: boolean;
 };
 
 const ChatInput = ({
   handleInputChange,
   handleSubmit,
   input,
+  isLoading = false,
 }: ChatInputProps) => {
   return (
     <div className="p-3 flex justify-center items-center border-t">
@@ -21,11 +23,16 @@ const ChatInput = ({
           onChange={(e) => {
             handleInputChange(e);
           }}
-          className="p-2 rounded-md outline-none border-none w-full text-gray-700"
+          className="p-2 rounded-md outline-none border-none w-full text-gray-700 dark:bg-gray-700 dark:text-white"
           placeholder="What would you like to know?"
+          disabled={isLoading}
         />
-        <button type="submit" className="ml-2 text-[#AD49E1]">
-          ➤
+        <button 
+          type="submit" 
+          className={`ml-2 ${isLoading ? 'text-gray-400' : 'text-[#AD49E1]'}`}
+          disabled={isLoading || !input.trim()}
+        >
+          {isLoading ? '...' : '➤'}
         </button>
       </form>
     </div>

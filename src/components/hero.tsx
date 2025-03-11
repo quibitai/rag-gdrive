@@ -8,20 +8,27 @@ import toast from "react-hot-toast";
 
 export function HomeHero() {
   const [loading, setLoading] = React.useState(false);
+  const [showManualInstructions, setShowManualInstructions] = React.useState(false);
+  
   const handleClick = async () => {
     setLoading(true);
     const promise = generateEmbeddings().finally(() => {
       setLoading(false);
     });
+    
     toast.promise(promise, {
       loading: "Generating embeddings...",
       success: <b>Embeddings generated.</b>,
-      error: <b className="text-red-400">Error in generating embeddings.</b>,
+      error: (err) => {
+        // Show manual instructions if there's an error
+        setShowManualInstructions(true);
+        return <b className="text-red-400">{err.message || "Error in generating embeddings."}</b>;
+      },
     });
   };
 
   return (
-    <div >
+    <div className="w-full">
       <HeroHighlight>
         <motion.h1
           initial={{
@@ -47,6 +54,28 @@ export function HomeHero() {
             </div>
           </div>
         </motion.h1>
+
+        {/* Manual upload instructions */}
+        {showManualInstructions && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mt-8 p-4 border border-yellow-400 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg max-w-4xl mx-auto"
+          >
+            <h3 className="font-bold text-yellow-700 dark:text-yellow-500 mb-2">
+              Manual File Upload Required
+            </h3>
+            <ol className="list-decimal ml-5 text-sm space-y-2 text-yellow-700 dark:text-yellow-400">
+              <li>Create a <code className="bg-yellow-100 dark:bg-yellow-900/40 px-1 rounded">knowledgebase</code> folder in your project root if it doesn't exist</li>
+              <li>Download your PDF files from Google Drive</li>
+              <li>Place the PDF files directly into the <code className="bg-yellow-100 dark:bg-yellow-900/40 px-1 rounded">knowledgebase</code> folder</li>
+              <li>Click "Generate Embeddings" again</li>
+            </ol>
+            <p className="mt-2 text-sm text-yellow-600 dark:text-yellow-500">
+              This bypasses the Google Drive permission issues.
+            </p>
+          </motion.div>
+        )}
 
         <motion.div
           initial={{

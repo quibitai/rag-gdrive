@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { MoonIcon, SunIcon } from "@radix-ui/react-icons";
+import Link from "next/link";
 
 const Header = () => {
   const [darkMode, setDarkMode] = useState(() =>
@@ -41,9 +42,11 @@ const Header = () => {
             <button className="dark:bg-[#23272A] bg-white font-bold px-6 py-3 rounded-lg text-neutral-900 dark:text-white flex items-center justify-center disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors duration-300 ease-in-out hover:bg-gray-200 dark:hover:bg-gray-700 border hover:border-gray-500 dark:hover:border-gray-300">
               Login
             </button>
-            <button className="dark:bg-white bg-[#23272A] font-bold px-6 py-3 rounded-lg text-white dark:text-neutral-900 flex items-center justify-center disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors duration-300 ease-in-out hover:bg-gray-700 dark:hover:bg-gray-200">
-              Get Started
-            </button>
+            <Link href="/chat">
+              <button className="dark:bg-white bg-[#23272A] font-bold px-6 py-3 rounded-lg text-white dark:text-neutral-900 flex items-center justify-center disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors duration-300 ease-in-out hover:bg-gray-700 dark:hover:bg-gray-200">
+                Get Started
+              </button>
+            </Link>
           </div>
         </div>
       </header>

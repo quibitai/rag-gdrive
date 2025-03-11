@@ -38,4 +38,7 @@ next-env.d.ts
 
 service-credentials.json
 
-knowledgebase/
+# project specific
+/knowledgebase/
+file-catalog.json
+test-drive-access.js
