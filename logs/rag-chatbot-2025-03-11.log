@@ -1,0 +1,41 @@
+[2025-03-11T15:01:54.844Z] [INFO] Starting vector database generation
+[2025-03-11T15:01:54.845Z] [INFO] Clearing the vector and Redis DB
+[2025-03-11T15:01:55.660Z] [INFO] Generating filenames from knowledgebase directory
+[2025-03-11T15:01:55.661Z] [INFO] Found 7 supported files to process
+[2025-03-11T15:01:55.661Z] [INFO] Processing files and storing in vector database
+[2025-03-11T15:01:55.663Z] [INFO] Processing file: Copy of Catch & Cook Agenda.pdf
+[2025-03-11T15:01:55.798Z] [INFO] Extracted 4 document(s) from Copy of Catch & Cook Agenda.pdf
+[2025-03-11T15:01:55.800Z] [INFO] Split into 7 chunks
+[2025-03-11T15:01:55.800Z] [INFO] SAVING 7 CHUNKS FROM Copy of Catch & Cook Agenda.pdf TO VECTOR DATABASE
+[2025-03-11T15:01:56.824Z] [INFO] Successfully saved chunks from Copy of Catch & Cook Agenda.pdf
+[2025-03-11T15:01:56.824Z] [INFO] Processing file: Copy of Catch & Cook Toledo Bend Fishing Rodeo Details.pdf
+[2025-03-11T15:01:56.857Z] [INFO] Extracted 2 document(s) from Copy of Catch & Cook Toledo Bend Fishing Rodeo Details.pdf
+[2025-03-11T15:01:56.857Z] [INFO] Split into 4 chunks
+[2025-03-11T15:01:56.857Z] [INFO] SAVING 4 CHUNKS FROM Copy of Catch & Cook Toledo Bend Fishing Rodeo Details.pdf TO VECTOR DATABASE
+[2025-03-11T15:01:57.039Z] [INFO] Successfully saved chunks from Copy of Catch & Cook Toledo Bend Fishing Rodeo Details.pdf
+[2025-03-11T15:01:57.039Z] [INFO] Processing file: Copy of GLF_Christmas_Eve_2024_Scope.docx
+[2025-03-11T15:01:57.105Z] [INFO] Extracted 1 document(s) from Copy of GLF_Christmas_Eve_2024_Scope.docx
+[2025-03-11T15:01:57.106Z] [INFO] Split into 8 chunks
+[2025-03-11T15:01:57.106Z] [INFO] SAVING 8 CHUNKS FROM Copy of GLF_Christmas_Eve_2024_Scope.docx TO VECTOR DATABASE
+[2025-03-11T15:01:57.501Z] [INFO] Successfully saved chunks from Copy of GLF_Christmas_Eve_2024_Scope.docx
+[2025-03-11T15:01:57.501Z] [INFO] Processing file: Copy of GLF_Contract_012624.pdf
+[2025-03-11T15:01:57.566Z] [INFO] Extracted 8 document(s) from Copy of GLF_Contract_012624.pdf
+[2025-03-11T15:01:57.566Z] [INFO] Split into 10 chunks
+[2025-03-11T15:01:57.567Z] [INFO] SAVING 10 CHUNKS FROM Copy of GLF_Contract_012624.pdf TO VECTOR DATABASE
+[2025-03-11T15:01:58.024Z] [INFO] Successfully saved chunks from Copy of GLF_Contract_012624.pdf
+[2025-03-11T15:01:58.025Z] [INFO] Processing file: Copy of Invoice 2892.pdf
+[2025-03-11T15:01:58.030Z] [INFO] Extracted 1 document(s) from Copy of Invoice 2892.pdf
+[2025-03-11T15:01:58.030Z] [INFO] Split into 1 chunks
+[2025-03-11T15:01:58.030Z] [INFO] SAVING 1 CHUNKS FROM Copy of Invoice 2892.pdf TO VECTOR DATABASE
+[2025-03-11T15:01:58.142Z] [INFO] Successfully saved chunks from Copy of Invoice 2892.pdf
+[2025-03-11T15:01:58.142Z] [INFO] Processing file: Quibit Business test.pdf
+[2025-03-11T15:01:58.170Z] [INFO] Extracted 6 document(s) from Quibit Business test.pdf
+[2025-03-11T15:01:58.171Z] [INFO] Split into 11 chunks
+[2025-03-11T15:01:58.171Z] [INFO] SAVING 11 CHUNKS FROM Quibit Business test.pdf TO VECTOR DATABASE
+[2025-03-11T15:01:58.663Z] [INFO] Successfully saved chunks from Quibit Business test.pdf
+[2025-03-11T15:01:58.663Z] [INFO] Processing file: shot_list_studiobinder.txt
+[2025-03-11T15:01:58.664Z] [INFO] Extracted 1 document(s) from shot_list_studiobinder.txt
+[2025-03-11T15:01:58.664Z] [INFO] Split into 2 chunks
+[2025-03-11T15:01:58.664Z] [INFO] SAVING 2 CHUNKS FROM shot_list_studiobinder.txt TO VECTOR DATABASE
+[2025-03-11T15:01:58.798Z] [INFO] Successfully saved chunks from shot_list_studiobinder.txt
+[2025-03-11T15:01:58.800Z] [INFO] ALL DOCUMENTS ARE SAVED IN VECTOR DATABASE

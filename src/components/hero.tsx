@@ -66,10 +66,10 @@ export function HomeHero() {
               Manual File Upload Required
             </h3>
             <ol className="list-decimal ml-5 text-sm space-y-2 text-yellow-700 dark:text-yellow-400">
-              <li>Create a <code className="bg-yellow-100 dark:bg-yellow-900/40 px-1 rounded">knowledgebase</code> folder in your project root if it doesn't exist</li>
+              <li>Create a <code className="bg-yellow-100 dark:bg-yellow-900/40 px-1 rounded">knowledgebase</code> folder in your project root if it doesn&apos;t exist</li>
               <li>Download your PDF files from Google Drive</li>
               <li>Place the PDF files directly into the <code className="bg-yellow-100 dark:bg-yellow-900/40 px-1 rounded">knowledgebase</code> folder</li>
-              <li>Click "Generate Embeddings" again</li>
+              <li>Click &quot;Generate Embeddings&quot; again</li>
             </ol>
             <p className="mt-2 text-sm text-yellow-600 dark:text-yellow-500">
               This bypasses the Google Drive permission issues.

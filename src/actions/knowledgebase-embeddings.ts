@@ -6,11 +6,24 @@ import { store } from "@/lib/vector";
 import { redis } from "@/lib/redis";
 import { RecursiveCharacterTextSplitter } from "langchain/text_splitter";
 import { getFilenames, removeAndCreateFolder } from "@/utils/utils";
-import { PDFLoader } from "@langchain/community/document_loaders/fs/pdf";
+import { PDFLoader as LangChainPDFLoader } from "@langchain/community/document_loaders/fs/pdf";
 import { DocxLoader } from "@langchain/community/document_loaders/fs/docx";
 import { Document } from "@langchain/core/documents";
 import * as mammoth from "mammoth";
 import { UnstructuredClient } from "unstructured-client";
+import { 
+  getDocumentLoader as getModularDocumentLoader, 
+  isSupportedFileType as isModularSupportedFileType, 
+  getMimeTypeFromPath 
+} from "@/loaders";
+import { 
+  loadFileCatalog, 
+  saveFileCatalog, 
+  addFileToFileCatalog, 
+  updateFileMetadata, 
+  calculateFileHash 
+} from "@/utils/file-catalog";
+import { logger } from "@/utils/logger";
 
 const credentialFilename = "service-credentials.json";
 const scopes = ["https://www.googleapis.com/auth/drive"];
@@ -33,7 +46,8 @@ const supportedMimeTypes = [
 // Initialize the Unstructured client
 // Note: You'll need to sign up for an API key at https://app.unstructured.io
 const unstructuredClient = new UnstructuredClient({
-  api_key_auth: process.env.UNSTRUCTURED_API_KEY || "",
+  // @ts-ignore - The type definitions might be outdated
+  apiKey: process.env.UNSTRUCTURED_API_KEY || "",
 });
 
 // Helper function to get file extension from name
@@ -47,7 +61,7 @@ const getDocumentLoader = (filePath: string) => {
   
   switch (extension) {
     case '.pdf':
-      return new PDFLoader(filePath);
+      return new LangChainPDFLoader(filePath);
     case '.docx':
       // Custom loader for DOCX using mammoth
       return {
@@ -101,7 +115,7 @@ const getDocumentLoader = (filePath: string) => {
               }),
             ];
           } catch (error) {
-            console.error(`Error processing unknown file type ${filePath}:`, error);
+            console.error(`Error processing file ${filePath}:`, error);
             return [];
           }
         },
@@ -116,15 +130,11 @@ interface DriveFile {
   mimeType?: string | null;
 }
 
-const isSupportedFileType = (file: DriveFile): boolean => {
-  // Skip files without names
-  if (!file.name) {
-    return false;
-  }
-  
-  const extension = getFileExtension(file.name);
-  // Support common file types that our loaders can handle
-  return ['.pdf', '.docx', '.txt', '.md'].includes(extension);
+// Helper function to check if a file type is supported
+const isSupportedFileType = (filename: string | null): boolean => {
+  if (!filename) return false;
+  const extension = getFileExtension(filename);
+  return supportedExtensions.includes(extension);
 };
 
 export const fetchDataFromDriveAndSaveLocally = async () => {
@@ -172,10 +182,13 @@ export const fetchDataFromDriveAndSaveLocally = async () => {
     // Filter to only use supported file types for processing
     const supportedFiles = files.filter((file: DriveFile) => {
       // Skip files without names
-      if (!file.name) return false;
+      if (!file.name) {
+        return false;
+      }
       
+      // At this point, we know file.name is not null or undefined
       return supportedMimeTypes.includes(file.mimeType || '') || 
-        supportedExtensions.some(ext => file.name.toLowerCase().endsWith(ext));
+        supportedExtensions.some(ext => file.name!.toLowerCase().endsWith(ext));
     });
     
     console.log(`Found ${files.length} total files, ${supportedFiles.length} supported files in Google Drive folder`);
@@ -356,94 +369,120 @@ export const fetchDataFromDriveAndSaveLocally = async () => {
 };
 
 export const generateBotVectorData = async () => {
-  console.log("Clearing the vector and Redis DB.");
+  logger.info("Starting vector database generation");
+  logger.info("Clearing the vector and Redis DB");
+  
   // clear the vector store
   await store.delete({ deleteAll: true });
   // clear the redis db
   await redis.flushall();
 
-  console.log("GENERATING THE FILENAMES FROM KNOWLEDGEBASE");
+  logger.info("Generating filenames from knowledgebase directory");
   // Get all files regardless of extension
   const fileNames = getFilenames(dirPath);
   
   if (fileNames.length === 0) {
-    console.log("No files found in knowledgebase directory. Check your Google Drive folder.");
+    logger.warn("No files found in knowledgebase directory. Check your Google Drive folder.");
     return;
   }
 
   // Filter to only supported extensions
-  const supportedFiles = fileNames.filter(file => 
-    supportedExtensions.some(ext => file.toLowerCase().endsWith(ext))
-  );
+  const supportedFiles = fileNames.filter(file => isModularSupportedFileType(file));
 
-  console.log(`Found ${supportedFiles.length} supported files to process`);
-  console.log("MAPPING OVER THE FILES AND STORING INTO VECTOR DATABASE");
+  logger.info(`Found ${supportedFiles.length} supported files to process`);
+  logger.info("Processing files and storing in vector database");
   
-  // Create a file catalog to track all files
-  const fileCatalog: Array<{
-    filename: string;
-    type: string;
-    size: number;
-    documentCount: number;
-  }> = [];
+  // Load or initialize the file catalog
+  const catalog = loadFileCatalog();
   
+  // Process each file
   for await (const fileName of supportedFiles) {
-    console.log(`Processing file: ${fileName}`);
+    const filePath = path.join(dirPath, fileName);
+    logger.info(`Processing file: ${fileName}`);
+    
     try {
+      // Get file stats
+      const stats = fs.statSync(filePath);
+      
+      // Calculate content hash for deduplication
+      const contentHash = calculateFileHash(filePath);
+      
+      // Get MIME type
+      const mimeType = getMimeTypeFromPath(filePath);
+      
+      // Add or update file in catalog
+      const fileMetadata = addFileToFileCatalog(
+        filePath,
+        mimeType,
+        stats.size,
+        'google-drive' // Assuming all files are from Google Drive
+      );
+      
+      // Update content hash
+      fileMetadata.contentHash = contentHash;
+      
       // Use the appropriate loader based on file extension
-      const loader = getDocumentLoader(`${dirPath}/${fileName}`);
+      const loader = getModularDocumentLoader(filePath, fileMetadata.id);
       const docs = await loader.load();
       
       if (docs.length === 0) {
-        console.log(`No content extracted from ${fileName}`);
+        logger.warn(`No content extracted from ${fileName}`);
+        updateFileMetadata(fileMetadata.id, {
+          processingStatus: 'error',
+          errorMessage: 'No content extracted from file',
+          processedAt: new Date().toISOString()
+        });
         continue;
       }
       
-      console.log(`Extracted ${docs.length} document(s) from ${fileName}`);
-      console.log(`Preview of content: ${docs[0].pageContent.slice(0, 100)}...`);
+      logger.info(`Extracted ${docs.length} document(s) from ${fileName}`);
+      logger.debug(`Preview of content: ${docs[0].pageContent.substring(0, 100)}...`);
       
-      // Add metadata to include source filename
-      docs.forEach((doc: Document) => {
-        doc.metadata.source = fileName;
-        // Add a content hash to help with deduplication
-        doc.metadata.contentHash = Buffer.from(doc.pageContent.slice(0, 1000)).toString('base64');
-      });
-      
-      // Add to file catalog
-      fileCatalog.push({
-        filename: fileName,
-        type: path.extname(fileName).toLowerCase().replace('.', ''),
-        size: fs.statSync(path.join(dirPath, fileName)).size,
-        documentCount: docs.length,
-      });
-      
-      // Create Splitter with smaller chunks for better retrieval
-      const splitter = new RecursiveCharacterTextSplitter({
+      // Split documents into chunks
+      const textSplitter = new RecursiveCharacterTextSplitter({
         chunkSize: 1000,
         chunkOverlap: 200,
       });
-      const doc_chunks = await splitter.splitDocuments(docs);
-      console.log(`Split into ${doc_chunks.length} chunks`);
-
-      console.log(`SAVING ${doc_chunks.length} CHUNKS FROM ${fileName} TO VECTOR DATABASE`);
-      // store the chunks in upstash vector db
-      try {
-        await store.addDocuments(doc_chunks);
-        console.log(`Successfully saved chunks from ${fileName}`);
-      } catch (error) {
-        console.error(`Error saving chunks from ${fileName}:`, error);
-      }
+      
+      const chunks = await textSplitter.splitDocuments(docs);
+      logger.info(`Split into ${chunks.length} chunks`);
+      
+      // Save chunks to vector database
+      logger.info(`SAVING ${chunks.length} CHUNKS FROM ${fileName} TO VECTOR DATABASE`);
+      
+      // Store chunks and get their IDs
+      const ids = await store.addDocuments(chunks);
+      
+      // Update file metadata with chunk information
+      updateFileMetadata(fileMetadata.id, {
+        processingStatus: 'success',
+        chunkCount: chunks.length,
+        chunkIds: ids,
+        processedAt: new Date().toISOString()
+      });
+      
+      logger.info(`Successfully saved chunks from ${fileName}`);
     } catch (error) {
-      console.error(`Error processing file ${fileName}:`, error);
+      logger.error(`Error processing file ${fileName}:`, error);
+      
+      // Find the file in the catalog
+      const fileEntry = Object.values(catalog.files).find(file => file.name === fileName);
+      
+      if (fileEntry) {
+        // Update file metadata with error information
+        updateFileMetadata(fileEntry.id, {
+          processingStatus: 'error',
+          errorMessage: error instanceof Error ? error.message : String(error),
+          processedAt: new Date().toISOString()
+        });
+      }
     }
   }
   
-  // Save the file catalog for future reference
-  const catalogPath = path.join(rootDirectory, 'file-catalog.json');
-  fs.writeFileSync(catalogPath, JSON.stringify(fileCatalog, null, 2));
-  console.log(`File catalog saved to ${catalogPath}`);
+  // Save the updated catalog
+  saveFileCatalog(catalog);
   
-  console.log("ALL DOCUMENTS ARE SAVED IN VECTOR DATABASE");
+  logger.info("ALL DOCUMENTS ARE SAVED IN VECTOR DATABASE");
 };
 
 // Add this new function to check for manually placed files
