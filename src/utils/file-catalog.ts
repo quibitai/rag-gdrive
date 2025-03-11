@@ -201,4 +201,103 @@ export const getMimeTypeFromExtension = (extension: string): string => {
   };
   
   return mimeMap[extension.toLowerCase()] || 'application/octet-stream';
+};
+
+/**
+ * Checks for file changes in a directory and updates the catalog
+ * Returns information about which files need processing
+ */
+export const checkForFileChanges = (
+  directoryPath: string,
+  supportedFileFilter: (filename: string) => boolean
+): {
+  filesToProcess: string[];
+  filesToSkip: string[];
+  deletedFileIds: string[];
+} => {
+  // Load the catalog
+  const catalog = loadFileCatalog();
+  
+  // Initialize result sets
+  const filesToProcess: string[] = [];
+  const filesToSkip: string[] = [];
+  const deletedFileIds: string[] = Object.keys(catalog.files);
+  
+  // Get all files in the directory
+  const files = fs.readdirSync(directoryPath)
+    .filter(file => !fs.statSync(path.join(directoryPath, file)).isDirectory())
+    .filter(supportedFileFilter);
+  
+  // Check each file for changes
+  for (const fileName of files) {
+    const filePath = path.join(directoryPath, fileName);
+    
+    try {
+      // Get file stats
+      const stats = fs.statSync(filePath);
+      
+      // Calculate content hash
+      const contentHash = calculateFileHash(filePath);
+      
+      // Get MIME type from extension
+      const extension = path.extname(fileName).substring(1);
+      const mimeType = getMimeTypeFromExtension(extension);
+      
+      // Find if file exists in catalog by name
+      const existingFile = Object.values(catalog.files).find(file => file.name === fileName);
+      
+      if (existingFile) {
+        // Remove from deleted files list
+        const index = deletedFileIds.indexOf(existingFile.id);
+        if (index !== -1) {
+          deletedFileIds.splice(index, 1);
+        }
+        
+        // Check if file has changed
+        if (existingFile.contentHash !== contentHash || 
+            existingFile.size !== stats.size || 
+            existingFile.processingStatus === 'error') {
+          
+          // Update file metadata
+          updateFileMetadata(existingFile.id, {
+            size: stats.size,
+            contentHash,
+            processingStatus: 'pending',
+            lastModified: new Date().toISOString()
+          });
+          
+          filesToProcess.push(fileName);
+        } else {
+          filesToSkip.push(fileName);
+        }
+      } else {
+        // New file, add to catalog
+        const fileMetadata = addFileToFileCatalog(
+          filePath,
+          mimeType,
+          stats.size,
+          'manual-upload' // Default to manual upload
+        );
+        
+        // Update content hash
+        updateFileMetadata(fileMetadata.id, {
+          contentHash
+        });
+        
+        filesToProcess.push(fileName);
+      }
+    } catch (error) {
+      console.error(`Error checking file ${fileName}:`, error);
+      filesToProcess.push(fileName); // Process anyway to be safe
+    }
+  }
+  
+  // Save the updated catalog
+  saveFileCatalog(catalog);
+  
+  return {
+    filesToProcess,
+    filesToSkip,
+    deletedFileIds
+  };
 }; 

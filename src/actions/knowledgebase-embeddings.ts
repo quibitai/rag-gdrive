@@ -21,7 +21,9 @@ import {
   saveFileCatalog, 
   addFileToFileCatalog, 
   updateFileMetadata, 
-  calculateFileHash 
+  calculateFileHash,
+  removeFileFromCatalog,
+  checkForFileChanges
 } from "@/utils/file-catalog";
 import { logger } from "@/utils/logger";
 
@@ -370,56 +372,75 @@ export const fetchDataFromDriveAndSaveLocally = async () => {
 
 export const generateBotVectorData = async () => {
   logger.info("Starting vector database generation");
-  logger.info("Clearing the vector and Redis DB");
   
-  // clear the vector store
-  await store.delete({ deleteAll: true });
-  // clear the redis db
-  await redis.flushall();
-
-  logger.info("Generating filenames from knowledgebase directory");
-  // Get all files regardless of extension
-  const fileNames = getFilenames(dirPath);
+  // Check for file changes
+  const { filesToProcess, filesToSkip, deletedFileIds } = checkForFileChanges(
+    dirPath,
+    isModularSupportedFileType
+  );
   
-  if (fileNames.length === 0) {
-    logger.warn("No files found in knowledgebase directory. Check your Google Drive folder.");
+  logger.info(`Found ${filesToProcess.length + filesToSkip.length} supported files`);
+  logger.info(`${filesToProcess.length} files need processing, ${filesToSkip.length} files unchanged`);
+  
+  // Handle deleted files
+  if (deletedFileIds.length > 0) {
+    logger.info(`Detected ${deletedFileIds.length} files that have been removed`);
+    
+    // Get all chunk IDs from deleted files to remove from vector store
+    const chunkIdsToDelete: string[] = [];
+    const catalog = loadFileCatalog();
+    
+    for (const fileId of deletedFileIds) {
+      const fileMetadata = catalog.files[fileId];
+      if (fileMetadata && fileMetadata.chunkIds && fileMetadata.chunkIds.length > 0) {
+        chunkIdsToDelete.push(...fileMetadata.chunkIds);
+      }
+      
+      // Remove file from catalog
+      removeFileFromCatalog(fileId);
+    }
+    
+    // Delete chunks from vector store
+    if (chunkIdsToDelete.length > 0) {
+      logger.info(`Removing ${chunkIdsToDelete.length} chunks from vector store for deleted files`);
+      await store.delete({ ids: chunkIdsToDelete });
+    }
+  }
+  
+  // If no files need processing, we're done
+  if (filesToProcess.length === 0) {
+    logger.info("No files need processing, vector database is up to date");
     return;
   }
-
-  // Filter to only supported extensions
-  const supportedFiles = fileNames.filter(file => isModularSupportedFileType(file));
-
-  logger.info(`Found ${supportedFiles.length} supported files to process`);
-  logger.info("Processing files and storing in vector database");
   
-  // Load or initialize the file catalog
-  const catalog = loadFileCatalog();
+  logger.info(`Processing ${filesToProcess.length} files and storing in vector database`);
   
-  // Process each file
-  for await (const fileName of supportedFiles) {
+  // Process each file that needs updating
+  for await (const fileName of filesToProcess) {
     const filePath = path.join(dirPath, fileName);
     logger.info(`Processing file: ${fileName}`);
     
     try {
-      // Get file stats
-      const stats = fs.statSync(filePath);
+      // Find the file in the catalog
+      const catalog = loadFileCatalog();
+      const fileMetadata = Object.values(catalog.files).find(file => file.name === fileName);
       
-      // Calculate content hash for deduplication
-      const contentHash = calculateFileHash(filePath);
+      if (!fileMetadata) {
+        logger.error(`File ${fileName} not found in catalog, skipping`);
+        continue;
+      }
       
-      // Get MIME type
-      const mimeType = getMimeTypeFromPath(filePath);
-      
-      // Add or update file in catalog
-      const fileMetadata = addFileToFileCatalog(
-        filePath,
-        mimeType,
-        stats.size,
-        'google-drive' // Assuming all files are from Google Drive
-      );
-      
-      // Update content hash
-      fileMetadata.contentHash = contentHash;
+      // If file has existing chunks, delete them first
+      if (fileMetadata.chunkIds && fileMetadata.chunkIds.length > 0) {
+        logger.info(`Removing ${fileMetadata.chunkIds.length} existing chunks for ${fileName}`);
+        await store.delete({ ids: fileMetadata.chunkIds });
+        
+        // Reset chunk information
+        updateFileMetadata(fileMetadata.id, {
+          chunkCount: 0,
+          chunkIds: []
+        });
+      }
       
       // Use the appropriate loader based on file extension
       const loader = getModularDocumentLoader(filePath, fileMetadata.id);
@@ -466,6 +487,7 @@ export const generateBotVectorData = async () => {
       logger.error(`Error processing file ${fileName}:`, error);
       
       // Find the file in the catalog
+      const catalog = loadFileCatalog();
       const fileEntry = Object.values(catalog.files).find(file => file.name === fileName);
       
       if (fileEntry) {
@@ -478,9 +500,6 @@ export const generateBotVectorData = async () => {
       }
     }
   }
-  
-  // Save the updated catalog
-  saveFileCatalog(catalog);
   
   logger.info("ALL DOCUMENTS ARE SAVED IN VECTOR DATABASE");
 };

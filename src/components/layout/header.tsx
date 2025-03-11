@@ -39,6 +39,11 @@ const Header = () => {
             )}
           </button>
           <div className="lg:flex hidden items-center gap-5">
+            <Link href="/dashboard">
+              <button className="dark:bg-[#23272A] bg-white font-bold px-6 py-3 rounded-lg text-neutral-900 dark:text-white flex items-center justify-center disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors duration-300 ease-in-out hover:bg-gray-200 dark:hover:bg-gray-700 border hover:border-gray-500 dark:hover:border-gray-300">
+                Dashboard
+              </button>
+            </Link>
             <button className="dark:bg-[#23272A] bg-white font-bold px-6 py-3 rounded-lg text-neutral-900 dark:text-white flex items-center justify-center disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors duration-300 ease-in-out hover:bg-gray-200 dark:hover:bg-gray-700 border hover:border-gray-500 dark:hover:border-gray-300">
               Login
             </button>
