@@ -36,9 +36,21 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
+# credentials
 service-credentials.json
+credentials/
 
 # project specific
 /knowledgebase/
 file-catalog.json
-test-drive-access.js
+dashboard.html
+.file-error-fix-last-run.json
+
+# logs
+/logs/
+*.log
+
+# temporary files
+**/~$*
+**/.DS_Store
+**/._.DS_Store
