@@ -40,6 +40,11 @@ A powerful Retrieval-Augmented Generation (RAG) chatbot built with Next.js and t
 - 📊 **File Catalog**: Tracks all files and their processing status
 - 🔄 **Selective Updates**: Only reprocesses files that have changed
 - 📅 **Scheduled Updates**: Supports automated updates via webhooks
+- 🔌 **Real-time Updates**: WebSocket integration for live file status updates
+- 📄 **WebSocket-based real-time file catalog updates**
+- 📄 **Document processing with embeddings generation**
+- 📄 **File explorer with status tracking**
+- 📄 **Chat interface with RAG capabilities**
 
 ## Getting Started
 
@@ -50,6 +55,7 @@ A powerful Retrieval-Augmented Generation (RAG) chatbot built with Next.js and t
 - Google Cloud account (for Google Drive integration)
 - Groq API key
 - Upstash Redis and Vector accounts
+- OpenAI API key (for embeddings and chat)
 
 ### Installation
 
@@ -71,14 +77,19 @@ A powerful Retrieval-Augmented Generation (RAG) chatbot built with Next.js and t
    cp .env.example .env.local
    ```
 
-4. Start the development server:
+4. Start the WebSocket server:
+   ```bash
+   node server.js
+   ```
+
+5. In a separate terminal, start the Next.js development server:
    ```bash
    npm run dev
    # or
    yarn dev
    ```
 
-5. Open [http://localhost:3000](http://localhost:3000) in your browser.
+6. Open [http://localhost:3000](http://localhost:3000) in your browser.
 
 ### Configuration
 
@@ -93,6 +104,8 @@ UPSTASH_VECTOR_REST_TOKEN=your-vector-token
 GOOGLE_DRIVE_FOLDER_ID=your-google-drive-folder-id
 UNSTRUCTURED_API_KEY=your-unstructured-api-key
 SCHEDULED_UPDATE_SECRET=your-secret-key
+OPENAI_API_KEY=your_openai_api_key
+API_SECRET_KEY=your_secret_key_for_api_access
 ```
 
 Important notes:
@@ -104,34 +117,22 @@ Important notes:
   ```bash
   ollama pull nomic-embed-text
   ```
+- For real-time updates, use the custom server:
+  ```bash
+  npm run dev:custom
+  # or for production
+  npm run start:custom
+  ```
 
 ## Architecture
 
 The RAG chatbot system consists of several key components:
 
-1. **Document Processing Pipeline**:
-   - File ingestion from Google Drive or local uploads
-   - Text extraction using specialized loaders for different file types
-   - Chunking of text into manageable segments
-   - Embedding generation using the nomic-embed-text model
-   - Storage of embeddings in Upstash Vector database
-
-2. **Retrieval System**:
-   - Semantic search using vector similarity
-   - Metadata filtering for more precise results
-   - Chunk-level differential updates for efficient processing
-
-3. **Chat Interface**:
-   - Real-time streaming responses
-   - Markdown rendering
-   - Mobile-responsive design
-   - Dark mode support
-
-4. **Maintenance System**:
-   - File catalog management
-   - Error detection and recovery
-   - Scheduled updates via webhooks
-   - Monitoring dashboard
+1. **WebSocket Server**: Provides real-time updates for the file catalog
+2. **Next.js API Routes**: Handle file processing, embeddings generation, and chat functionality
+3. **File Explorer Component**: Displays the file catalog with status information
+4. **Chat Interface**: Allows users to interact with the RAG-powered chatbot
+5. **Vector Store**: Stores document embeddings for retrieval during chat
 
 ## Development Guide
 
@@ -195,6 +196,21 @@ When adding new features to the RAG chatbot:
 ### Available Scripts
 
 The `scripts/` directory contains tools for maintaining the RAG chatbot system:
+
+#### `fix-file-paths.js` (v2.1)
+
+Fixes file paths in the catalog to ensure they maintain the proper folder structure, particularly for files that should be in nested directories.
+
+```bash
+# Basic usage
+node scripts/fix-file-paths.js
+```
+
+Features:
+- Automatically categorizes financial documents into appropriate subfolders
+- Identifies client documents and places them in client-specific folders
+- Provides detailed statistics on updated files
+- Creates timestamped backups of the file catalog before making changes
 
 #### `fix-file-errors.js`
 
@@ -417,3 +433,10 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 ## License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
+
+## Acknowledgments
+
+- [Vercel AI SDK](https://github.com/vercel/ai)
+- [Next.js](https://nextjs.org/)
+- [LangChain](https://js.langchain.com/)
+- [OpenAI](https://openai.com/)

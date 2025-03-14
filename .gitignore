@@ -43,6 +43,7 @@ credentials/
 # project specific
 /knowledgebase/
 file-catalog.json
+file-catalog.json.backup*
 dashboard.html
 .file-error-fix-last-run.json
 
