@@ -1,5 +1,7 @@
 # RAG Chatbot with Next.js and Vercel AI SDK
 
+> **IMPORTANT NOTE:** Dashboard and RAG sync not fully functional. See rag-rebuild-plan.md for development roadmap, which is only partially implemented.
+
 > **Note:** Google sync of knowledge base working with RAG. BUT, ai is unreliable and inconsistent at knowing what knowledge to access and how to respond or apply the knowledge to its response. Also, lots of hallucinations.
 
 A powerful Retrieval-Augmented Generation (RAG) chatbot built with Next.js and the Vercel AI SDK, using GROQ for language model inference. This system allows you to create a chatbot that can answer questions based on your own documents.
